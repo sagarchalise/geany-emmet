@@ -73,7 +73,7 @@ JSContext *cx;
 gint emmet_action_len = 18;
 gint indicate_box = 16;
 gint emmet_key_group = 4;
-const gchar *highlight_tag = "highlight_tag";
+// gchar *highlight_tag = "highlight_tag";
 const gchar *emmet_actions[18] = {
   "expand_abbreviation",
   "matching_pair",
@@ -477,7 +477,10 @@ static void demo_cleanup(GeanyPlugin *plugin, gpointer data)
 {
 	/* remove the menu item added in demo_init() */
     JS_ShutDown();
-    g_free(emmet_actions);
+    // for(int i=0; i < emmet_action_len; i++){
+        // g_free(emmet_actions[i]);
+    // }
+    // g_free(emmet_actions);
     g_free(emmet_file);
     g_free(editor_file);
     // g_free(highlight_tag);
