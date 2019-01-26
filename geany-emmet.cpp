@@ -32,8 +32,8 @@
  */
 
 
-#include "geanyplugin.h"	/* plugin API, always comes first */
-#include "Scintilla.h"	/* for the SCNotification struct */
+#include "geanyplugin.h"    /* plugin API, always comes first */
+#include "Scintilla.h"  /* for the SCNotification struct */
 #include "jsapi.h"
 #include "js/Initialization.h"
 static JSClassOps global_ops = {
@@ -70,11 +70,11 @@ GtkWidget *main_window = NULL;
 gchar *emmet_file = NULL;
 gchar *editor_file = NULL;
 JSContext *cx;
-gint emmet_action_len = 18;
+gint emmet_action_len = 24;
 gint indicate_box = 16;
 gint emmet_key_group = 4;
 // gchar *highlight_tag = "highlight_tag";
-const gchar *emmet_actions[18] = {
+const gchar *emmet_actions[24] = {
   "expand_abbreviation",
   "matching_pair",
   "wrap_with_abbreviation",
@@ -82,8 +82,8 @@ const gchar *emmet_actions[18] = {
   "encode_decode_data_url",
   "prev_edit_point",
   "next_edit_point",
-  "evaluate_math_expression", 
-  "insert_formatted_line_break",
+  "evaluate_math_expression",
+  "toggle_comment",
   "balance_inward",
   "balance_outward",
   "merge_lines",
@@ -92,7 +92,13 @@ const gchar *emmet_actions[18] = {
   "select_previous_item",
   "split_join_tag",
   "update_image_size",
-  "update_tag"
+  "update_tag",
+  "increment_number_by_01",
+  "decrement_number_by_01",
+  "increment_number_by_1",
+  "decrement_number_by_1",
+  "increment_number_by_10",
+  "decrement_number_by_10"
 };
 
 
@@ -156,7 +162,7 @@ static bool create_selection(JSContext *cx, unsigned argc, JS::Value *vp)
 }
 static bool get_selection_start(JSContext *cx, unsigned argc, JS::Value *vp)
 {
-    
+
     JS::CallArgs args = CallArgsFromVp(argc, vp);
     GeanyDocument *doc = document_get_current();
     gint pos;
@@ -340,9 +346,9 @@ static void run_emmet(const gchar *action){
         return;
     if (!JS::InitSelfHostedCode(cx))
         return;
-    { 
+    {
 
-      JSAutoRequest ar(cx); 
+      JSAutoRequest ar(cx);
 
       JS::CompartmentOptions options;
       JS::RootedObject global(cx, JS_NewGlobalObject(cx, &global_class, nullptr, JS::FireOnNewGlobalHook, options));
@@ -358,7 +364,7 @@ static void run_emmet(const gchar *action){
         if (!JS_DefineFunctions(cx, global, my_functions)){
             printf("%d\n", 4);
             return;
-        
+
         }
         JS::CompileOptions opts(cx);
         const char *script = "var self=this;";
@@ -431,12 +437,12 @@ static gboolean demo_init(GeanyPlugin *plugin, gpointer data){
         gtk_menu_item_new_with_label("Expand Abbreviation"),
         gtk_menu_item_new_with_label("Go To Matching Pair"),
         gtk_menu_item_new_with_label("Wrap With Abbreviation"),
-        gtk_menu_item_new_with_label("Reflect Css Value"),
-        gtk_menu_item_new_with_label("Encode/Decode Data URL"),
+        gtk_menu_item_new_with_label("Reflect CSS Value"),
+        gtk_menu_item_new_with_label("Encode/Decode Image to Data URL"),
         gtk_menu_item_new_with_label("Prev Edit Point"),
         gtk_menu_item_new_with_label("Next Edit Point"),
-        gtk_menu_item_new_with_label("Evaluate Math Expression"), 
-        gtk_menu_item_new_with_label("Insert Formatted Line Break"),
+        gtk_menu_item_new_with_label("Evaluate Math Expression"),
+        gtk_menu_item_new_with_label("Toggle Comments"),
         gtk_menu_item_new_with_label("Balance Inward"),
         gtk_menu_item_new_with_label("Balance Outward"),
         gtk_menu_item_new_with_label("Merge Lines"),
@@ -445,7 +451,13 @@ static gboolean demo_init(GeanyPlugin *plugin, gpointer data){
         gtk_menu_item_new_with_label("Select Previous Item"),
         gtk_menu_item_new_with_label("Split Join Tag"),
         gtk_menu_item_new_with_label("Update Image Size"),
-        gtk_menu_item_new_with_label("Update Tag")
+        gtk_menu_item_new_with_label("Update Tag"),
+        gtk_menu_item_new_with_label("Increment Number by 0.1"),
+        gtk_menu_item_new_with_label("Decrement Number by 0.1"),
+        gtk_menu_item_new_with_label("Increment Number by 1"),
+        gtk_menu_item_new_with_label("Decrement Number by 1"),
+        gtk_menu_item_new_with_label("Increment Number by 10"),
+        gtk_menu_item_new_with_label("Decrement Number by 10")
     };
     key_group = plugin_set_key_group(plugin, "emmet", emmet_key_group, NULL);
     for(gint i=0; i < emmet_action_len; i++){
@@ -475,7 +487,7 @@ static gboolean demo_init(GeanyPlugin *plugin, gpointer data){
  * Be sure to leave Geany as it was before demo_init(). */
 static void demo_cleanup(GeanyPlugin *plugin, gpointer data)
 {
-	/* remove the menu item added in demo_init() */
+    /* remove the menu item added in demo_init() */
     JS_ShutDown();
     // for(int i=0; i < emmet_action_len; i++){
         // g_free(emmet_actions[i]);
@@ -484,15 +496,15 @@ static void demo_cleanup(GeanyPlugin *plugin, gpointer data)
     g_free(emmet_file);
     g_free(editor_file);
     // g_free(highlight_tag);
-	gtk_widget_destroy(emmet_menu);
-	/* release other allocated strings and objects */
+    gtk_widget_destroy(emmet_menu);
+    /* release other allocated strings and objects */
 }
 static void on_document_action(GObject *object, GeanyDocument *doc,
-								 gpointer data)
+                                 gpointer data)
 {
-	/* data == GeanyPlugin because the data member of PluginCallback was set to NULL
-	 * and this plugin has called geany_plugin_set_data() with the GeanyPlugin pointer as
-	 * data */
+    /* data == GeanyPlugin because the data member of PluginCallback was set to NULL
+     * and this plugin has called geany_plugin_set_data() with the GeanyPlugin pointer as
+     * data */
      if(check_doc(doc)){
         gtk_widget_set_sensitive(emmet_menu, TRUE);
      }
@@ -501,11 +513,11 @@ static void on_document_action(GObject *object, GeanyDocument *doc,
     }
 }
 static void on_document_close(GObject *object, GeanyDocument *doc,
-								 gpointer data)
+                                 gpointer data)
 {
-	/* data == GeanyPlugin because the data member of PluginCallback was set to NULL
-	 * and this plugin has called geany_plugin_set_data() with the GeanyPlugin pointer as
-	 * data */
+    /* data == GeanyPlugin because the data member of PluginCallback was set to NULL
+     * and this plugin has called geany_plugin_set_data() with the GeanyPlugin pointer as
+     * data */
         gtk_widget_set_sensitive(emmet_menu, FALSE);
     // JS_DestroyRuntime(rt);
 }
@@ -529,32 +541,32 @@ static void on_document_close(GObject *object, GeanyDocument *doc,
 // }
 static PluginCallback demo_callbacks[] =
 {
-	/* Set 'after' (third field) to TRUE to run the callback @a after the default handler.
-	 * If 'after' is FALSE, the callback is run @a before the default handler, so the plugin
-	 * can prevent Geany from processing the notification. Use this with care. */
-	// { "editor-notify", (GCallback) &on_editor_notify, FALSE, NULL },
-	{ "document-reload", (GCallback) &on_document_action, FALSE, NULL },
-	{ "document-save", (GCallback) &on_document_action, FALSE, NULL },
-	{ "document-activate", (GCallback) &on_document_action, FALSE, NULL },
-	{ "document-close", (GCallback) &on_document_close, FALSE, NULL },
-	{ "document-open", (GCallback) &on_document_action, FALSE, NULL },
-	{ NULL, NULL, FALSE, NULL }
+    /* Set 'after' (third field) to TRUE to run the callback @a after the default handler.
+     * If 'after' is FALSE, the callback is run @a before the default handler, so the plugin
+     * can prevent Geany from processing the notification. Use this with care. */
+    // { "editor-notify", (GCallback) &on_editor_notify, FALSE, NULL },
+    { "document-reload", (GCallback) &on_document_action, FALSE, NULL },
+    { "document-save", (GCallback) &on_document_action, FALSE, NULL },
+    { "document-activate", (GCallback) &on_document_action, FALSE, NULL },
+    { "document-close", (GCallback) &on_document_close, FALSE, NULL },
+    { "document-open", (GCallback) &on_document_action, FALSE, NULL },
+    { NULL, NULL, FALSE, NULL }
 };
 
 extern "C" void geany_load_module(GeanyPlugin *plugin)
 {
-	/* main_locale_init() must be called for your package before any localization can be done */
-	main_locale_init(LOCALEDIR, GETTEXT_PACKAGE);
-	plugin->info->name = _("Emmet");
-	plugin->info->description = _("Emmet Plugin.");
-	plugin->info->version = "0.4";
-	plugin->info->author =  _("Sagar Chalise");
+    /* main_locale_init() must be called for your package before any localization can be done */
+    main_locale_init(LOCALEDIR, GETTEXT_PACKAGE);
+    plugin->info->name = _("Emmet");
+    plugin->info->description = _("Emmet Plugin.");
+    plugin->info->version = "0.4";
+    plugin->info->author =  _("Sagar Chalise");
 
-	plugin->funcs->init = demo_init;
-	plugin->funcs->configure = NULL;
-	plugin->funcs->help = NULL; /* This demo has no help but it is an option */
-	plugin->funcs->cleanup = demo_cleanup;
-	plugin->funcs->callbacks = demo_callbacks;
+    plugin->funcs->init = demo_init;
+    plugin->funcs->configure = NULL;
+    plugin->funcs->help = NULL; /* This demo has no help but it is an option */
+    plugin->funcs->cleanup = demo_cleanup;
+    plugin->funcs->callbacks = demo_callbacks;
 
-	GEANY_PLUGIN_REGISTER(plugin, 225);
+    GEANY_PLUGIN_REGISTER(plugin, 225);
 }
