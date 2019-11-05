@@ -1,8 +1,8 @@
 all: build
 	
 build:	
-	g++ -DLOCALEDIR=\"\" -DGETTEXT_PACKAGE=\"geany-emmet\" -c ./geany-emmet.cpp -fPIC `pkg-config --cflags geany mozjs-52`
-	g++ geany-emmet.o -o geany-emmet.so -shared `pkg-config --libs geany mozjs-52`
+	g++ -DLOCALEDIR=\"\" -DGETTEXT_PACKAGE=\"geany-emmet\" -c ./geany-emmet.cpp -fPIC `pkg-config --cflags geany mozjs-60`
+	g++ geany-emmet.o -o geany-emmet.so -shared `pkg-config --libs geany mozjs-60`
 
 install: uninstall startinstall
 

@@ -37,18 +37,17 @@
 #include "jsapi.h"
 #include "js/Initialization.h"
 static JSClassOps global_ops = {
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    JS_GlobalObjectTraceHook
+  nullptr,  // addProperty
+  nullptr,  // deleteProperty
+  nullptr,  // enumerate
+  nullptr,  // newEnumerate
+  nullptr,  // resolve
+  nullptr,  // mayResolve
+  nullptr,  // finalize
+  nullptr,  // call
+  nullptr,  // hasInstance
+  nullptr,  // construct
+  JS_GlobalObjectTraceHook
 };
 
 /* The class of the global object. */
@@ -71,9 +70,7 @@ gchar *emmet_file = NULL;
 gchar *editor_file = NULL;
 JSContext *cx;
 gint emmet_action_len = 24;
-gint indicate_box = 16;
 gint emmet_key_group = 4;
-// gchar *highlight_tag = "highlight_tag";
 const gchar *emmet_actions[24] = {
   "expand_abbreviation",
   "matching_pair",
@@ -123,18 +120,6 @@ static bool set_caret_pos(JSContext *cx, unsigned argc, JS::Value *vp)
     GeanyDocument *doc = document_get_current();
     sci_set_current_position(doc->editor->sci, pos, TRUE);
     // args.rval().setNull();
-    return true;
-}
-static bool highlight_matching_tag(JSContext *cx, unsigned argc, JS::Value *vp)
-{
-    JS::CallArgs args = CallArgsFromVp(argc, vp);
-    gint start = args[0].toNumber();
-    gint end = args[1].toNumber();
-    if(start == end){
-        return true;
-    }
-    GeanyDocument *doc = document_get_current();
-    editor_indicator_set_on_range(doc->editor, indicate_box, start, end);
     return true;
 }
 static bool create_selection(JSContext *cx, unsigned argc, JS::Value *vp)
@@ -325,7 +310,6 @@ static JSFunctionSpec my_functions[] = {
   JS_FN("getGeanyLineContent", get_current_line_content, 0, 0),
   JS_FN("getGeanySelection", get_selection_content, 0, 0),
   JS_FN("geanyPrompt", prompt, 0, 0),
-  JS_FN("highlightGeanyTag", highlight_matching_tag, 2, 0),
   JS_FN("getGeanySyntax", get_syntax, 0, 0),
   JS_FN("isGeanyTabUsed", is_tab_used, 0, 0),
   JS_FN("getGeanyTabWidth", get_tab_width, 0, 0),
@@ -386,8 +370,6 @@ static void run_emmet(const gchar *action){
             return;
         }
         JS::AutoValueArray<1> argv(cx);
-        // argv[0].setNull();
-        // printf("%d\n", GPOINTER_TO_INT(gdata));
         argv[0].set(JS::StringValue(JS_NewStringCopyN(cx, action, strlen(action))));
         bool ok = JS_CallFunctionName(cx, global, "runAction", argv, &rval);
         if (!ok){
@@ -405,12 +387,12 @@ static void run_emmet(const gchar *action){
 }
 static gboolean check_doc(GeanyDocument *doc){
     if(!DOC_VALID(doc)){
-        return FALSE;
+        return false;
     }
     if(doc->file_type->id == GEANY_FILETYPES_HTML || doc->file_type->id == GEANY_FILETYPES_XML || doc->file_type->id == GEANY_FILETYPES_CSS || doc->file_type->id == GEANY_FILETYPES_PHP){
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 static void menu_item_action(G_GNUC_UNUSED GtkMenuItem *menuitem, gpointer gdata){
     GeanyDocument *doc = document_get_current();
@@ -473,7 +455,7 @@ static gboolean demo_init(GeanyPlugin *plugin, gpointer data){
     menubar_children = gtk_container_get_children(GTK_CONTAINER(menubar));
     gtk_menu_shell_insert(menubar, emmet_menu, g_list_length(menubar_children) - 1);
     g_list_free(menubar_children);
-    return TRUE;
+    return true;
 }
 
 /* Called by Geany to show the plugin's configure dialog. This function is always called after
@@ -521,30 +503,11 @@ static void on_document_close(GObject *object, GeanyDocument *doc,
         gtk_widget_set_sensitive(emmet_menu, FALSE);
     // JS_DestroyRuntime(rt);
 }
-// static gboolean on_editor_notify(GObject *obj, GeanyEditor *editor, SCNotification *nt, gpointer user_data){
-    // GeanyDocument *doc = editor->document;
-    // if(!check_doc(doc)){
-        // return FALSE;
-    // };
-    // editor_indicator_clear(doc->editor, indicate_box);
-    // if(doc->file_type->id != GEANY_FILETYPES_CSS){
-        // switch(nt->nmhdr.code){
-            // case SCN_UPDATEUI:
-            // case SCN_KEY:
-            // {
-                // run_emmet(highlight_tag);
-                // break;
-            // }
-        // }
-    // }
-    // return TRUE;
-// }
 static PluginCallback demo_callbacks[] =
 {
     /* Set 'after' (third field) to TRUE to run the callback @a after the default handler.
      * If 'after' is FALSE, the callback is run @a before the default handler, so the plugin
      * can prevent Geany from processing the notification. Use this with care. */
-    // { "editor-notify", (GCallback) &on_editor_notify, FALSE, NULL },
     { "document-reload", (GCallback) &on_document_action, FALSE, NULL },
     { "document-save", (GCallback) &on_document_action, FALSE, NULL },
     { "document-activate", (GCallback) &on_document_action, FALSE, NULL },
