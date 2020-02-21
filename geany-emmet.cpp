@@ -69,12 +69,12 @@ GtkWidget *main_window = NULL;
 gchar *emmet_file = NULL;
 gchar *editor_file = NULL;
 JSContext *cx;
-gint emmet_action_len = 24;
+gint emmet_action_len = 23;
 gint emmet_key_group = 4;
-const gchar *emmet_actions[24] = {
+const gchar *emmet_actions[23] = {
   "expand_abbreviation",
   "matching_pair",
-  "wrap_with_abbreviation",
+  //"wrap_with_abbreviation",
   "reflect_css_value",
   "encode_decode_data_url",
   "prev_edit_point",
@@ -252,6 +252,7 @@ prompt(JSContext *cx, unsigned argc, JS::Value *vp)
   JS::CallArgs args = CallArgsFromVp(argc, vp);
   gchar *abbr = dialogs_show_input("Wrap With Abbreviation", GTK_WINDOW(main_window), NULL, NULL);
   args.rval().set(JS::StringValue(JS_NewStringCopyN(cx, abbr, strlen(abbr))));
+  g_free(abbr);
 return true;
 }
 static bool
@@ -309,7 +310,7 @@ static JSFunctionSpec my_functions[] = {
   JS_FN("getGeanyContent", get_content, 0, 0),
   JS_FN("getGeanyLineContent", get_current_line_content, 0, 0),
   JS_FN("getGeanySelection", get_selection_content, 0, 0),
-  JS_FN("geanyPrompt", prompt, 0, 0),
+  //JS_FN("geanyPrompt", prompt, 0, 0),
   JS_FN("getGeanySyntax", get_syntax, 0, 0),
   JS_FN("isGeanyTabUsed", is_tab_used, 0, 0),
   JS_FN("getGeanyTabWidth", get_tab_width, 0, 0),
@@ -418,7 +419,7 @@ static gboolean demo_init(GeanyPlugin *plugin, gpointer data){
     GtkWidget *menu_items[emmet_action_len] = {
         gtk_menu_item_new_with_label("Expand Abbreviation"),
         gtk_menu_item_new_with_label("Go To Matching Pair"),
-        gtk_menu_item_new_with_label("Wrap With Abbreviation"),
+        //gtk_menu_item_new_with_label("Wrap With Abbreviation"),
         gtk_menu_item_new_with_label("Reflect CSS Value"),
         gtk_menu_item_new_with_label("Encode/Decode Image to Data URL"),
         gtk_menu_item_new_with_label("Prev Edit Point"),

@@ -64,9 +64,9 @@ var editorProxy = {
     getProfileName: function() {
         return detectProfile();
     },
-    prompt: function(title) {
-        return geanyPrompt();
-    },
+    // prompt: function(title) {
+        // return geanyPrompt();
+    // },
     getSelection: function() {
         return getGeanySelection();
     },
