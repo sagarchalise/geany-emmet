@@ -36,6 +36,8 @@
 #include "Scintilla.h"  /* for the SCNotification struct */
 #include "jsapi.h"
 #include "js/Initialization.h"
+#include "js/CharacterEncoding.h"
+#include "js/CompilationAndEvaluation.h"
 static JSClassOps global_ops = {
   nullptr,  // addProperty
   nullptr,  // deleteProperty
@@ -198,7 +200,10 @@ static bool replace_content(JSContext *cx, unsigned argc, JS::Value *vp)
     if(sci_has_selection(doc->editor->sci)){
         sci_replace_sel(doc->editor->sci, "");
     }
-    editor_insert_snippet(doc->editor, start, JS_EncodeString(cx, args[0].toString()));
+    gchar *buffer = NULL;
+    if(JS_EncodeStringToBuffer(cx, args[0].toString(), buffer, JS_GetStringEncodingLength(cx, args[0].toString()))){
+        editor_insert_snippet(doc->editor, start, buffer);
+    }
     return true;
 }
 static bool
@@ -333,9 +338,9 @@ static void run_emmet(const gchar *action){
         return;
     {
 
-      JSAutoRequest ar(cx);
+      //JSAutoRequest ar(cx);
 
-      JS::CompartmentOptions options;
+      JS::RealmOptions options;
       JS::RootedObject global(cx, JS_NewGlobalObject(cx, &global_class, nullptr, JS::FireOnNewGlobalHook, options));
       if (!global)
           return;
@@ -344,29 +349,29 @@ static void run_emmet(const gchar *action){
       // JS::RootedValue rval1(cx);
 
       { // Scope for JSAutoCompartment
-        JSAutoCompartment ac(cx, global);
-        JS_InitStandardClasses(cx, global);
+        JSAutoRealm ac(cx, global);
+        JS_EnumerateStandardClasses(cx, global);
         if (!JS_DefineFunctions(cx, global, my_functions)){
             printf("%d\n", 4);
             return;
 
         }
         JS::CompileOptions opts(cx);
-        const char *script = "var self=this;";
-        const char *filename = "bootstrap.js";
-        int lineno = 1;
-        opts.setFileAndLine(filename, lineno);
-        if(!JS::Evaluate(cx, opts, script, strlen(script), &rval)){
-            printf("%d\n", 50);
-        }
+        // const char *script = "var self=this;";
+        // const char *filename = "bootstrap.js";
+        // int lineno = 1;
+        // opts.setFileAndLine(filename, lineno);
+        // if(!JS::Evaluate(cx, opts, script, strlen(script), &rval)){
+            // printf("%d\n", 50);
+        // }
         // JS::CompileOptions opts(cx);
         opts.setFile(emmet_file);
-        if(!JS::Evaluate(cx, opts, emmet_file, &rval)){
+        if(!JS::EvaluateUtf8Path(cx, opts, emmet_file, &rval)){
             printf("%d\n", 3);
             return;
         }
         opts.setFile(editor_file);
-        if(!JS::Evaluate(cx, opts, editor_file, &rval)){
+        if(!JS::EvaluateUtf8Path(cx, opts, editor_file, &rval)){
             printf("%d\n", 2);
             return;
         }
@@ -379,7 +384,7 @@ static void run_emmet(const gchar *action){
         }
         if(rval.isString()){
             JSString *str = rval.toString();
-            printf("%s\n", JS_EncodeString(cx, str));
+            printf("%s\n", JS_EncodeStringToASCII(cx, str));
         }
       }
     }
